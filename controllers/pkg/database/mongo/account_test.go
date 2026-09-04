@@ -622,7 +622,12 @@ func TestGetTimeObjBucketExternalTraffic(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer func() {
-		_, _ = coll.DeleteMany(ctx, bson.M{"bucket": bson.M{"$in": bson.A{"abc12345-app", "zz999999-app"}}})
+		// Scope the cleanup to the seeded minutes (not bare bucket names) so a
+		// concurrent test run using the same buckets never loses its own rows.
+		_, _ = coll.DeleteMany(ctx, bson.M{
+			"bucket": bson.M{"$in": bson.A{"abc12345-app", "zz999999-app"}},
+			"minute": bson.M{"$gte": start, "$lte": end},
+		})
 	}()
 
 	got, err := m.GetTimeObjBucketExternalTraffic(start, end)
